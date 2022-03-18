@@ -142,8 +142,9 @@ void run_contest(void) {
 						if (count[i] != limit) {
 							set_student_school(A[i][j], i);
 							count[i]++;
-						}else 
-							if(count[++i])n
+						}
+						else
+							if (count[++i]);
 					}
 				
 
