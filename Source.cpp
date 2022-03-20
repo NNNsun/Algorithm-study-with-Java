@@ -103,6 +103,8 @@ void run_contest(void) {
 	// 현재 각 학교에 배정된 학생수
 	int countStd[3] = { 0, };
 
+	
+
 	// 반지름
 	int R = 0;
 
@@ -181,6 +183,7 @@ void run_contest(void) {
 						countStd[i]++;
 					}
 				}
+				
 
 				// 2.중복인 경우(거리가 같을 경우): 인원수가 적은 학교에 배정한다
 				if (state[situation[i][j]] == 2) {
@@ -227,8 +230,8 @@ void run_contest(void) {
 	}
 }
 // 범위을 구하는 함수
-double addStudents(int sch_x, int sch_y, int std_x, int std_y, int R) {
-	double rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_x) * (sch_y - std_x);
+int addStudents(int sch_x, int sch_y, int std_x, int std_y) {
+	int rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_x) * (sch_y - std_x);
 	return rr;
 }
 
