@@ -83,6 +83,11 @@ void set_student_school(int student_index, int school_index)
 
 	return;
 }
+// 범위을 구하는 함수
+int addStudents(int sch_x, int sch_y, int std_x, int std_y) {
+	int rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_x) * (sch_y - std_x);
+	return rr;
+}
 
 
 void run_contest(void) {
@@ -103,13 +108,15 @@ void run_contest(void) {
 	// 현재 각 학교에 배정된 학생수
 	int countStd[3] = { 0, };
 
-	
+	//<추가> 신규학생 스택
+	int top[3] = { -1 , };
+
 
 	// 반지름
 	int R = 0;
 
 	// 반지름 키우기
-	while (R++ < 2000) {
+	while (R++ < 1414) {
 		// N번째학교의 위치가 결정되고, n번째 학생의 위치를 알려주는 부분
 		for (int i = 0; i < 3; i++) {
 			// 학교 위치
@@ -122,117 +129,85 @@ void run_contest(void) {
 				get_student_position(i, &std_x, &std_y);
 
 				// 범위안에 있을경우
-				if (R * R > addStudents(sch_x, sch_y, std_x, std_y, R)) {
+				if (R * R >= addStudents(sch_x, sch_y, std_x, std_y)) {
 					// 배정된 학생이 아닐경우
 					if (state[j] > -1) {
-						situation[i][j] = j;
+						situation[i][top[i]++] = j;
 						// 1:발견됨, 끝까지 1로 남는 경우 차질없이 배정됨
-						if (state[j] = 0) state[j] = 1;
+						if (state[j] == 0) state[j] = 1;
 						// 2:중복, 이미 다른 학교로 배정되어있지만 같은 거리에 거주중이므로 분류가 필요한 상태
-						else if (state[j] = 1) state[j] = 2;
+						else if (state[j] == 1) state[j] = 2;
 					}
 				}
 			}
 		}
 		// 각 학교에 학생들을 배정하는 과정
+		//학교접근 situation 증가
 		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 10000; j++) {
-				// 1. 중복이 아닌 경우
-				if (state[situation[i][j]] == 1) {
-					// 정원이 가득찬 경우 -> 가장 적은 학생 수를 가진 학교를 찾아 학생을 배정함
-					if (countStd[i] > limit) {
-						if (countStd[0] <= countStd[1]) {
-							set_student_school(situation[i][j], 0);
-							countStd[0]++;
+			//학교별 top값 접근
+			for (int j = 0; j < 3; j++) {
+				//학교별 스택 접근
+				for (int k = 0; k < top[j]; k++) {
+					// 1. 중복이 아닌 경우
+					if (state[situation[i][j]] == 1) {
+						// 정원이 가득찬 경우 -> 정원이 남은 다른 학교가 발견하도록 '발견전' 상태로 만들어줌
+						if (countStd[i] > limit) {
+							state[situation[i][k]] = 0;
 						}
+						// 정원이 차지 않은 경우 -> 배정표시를 해준다, '-1'로 약속
 						else {
-							set_student_school(situation[i][j], 1);
-							countStd[1]++;
+							set_student_school(situation[i][k], i);
+							state[situation[i][k]] = -1;
+							countStd[i]++;
+						}
+					}
+
+					// 2.중복인 경우, 두개 이상의 레이더에 걸린 경우, 거리가 상의할수 있음
+					if (state[situation[i][k]] == 2) {
+						// 중복된 거리에 거주하는 학생의 위치
+						get_student_position(i, &std_x, &std_y);
+						//학생부터 각 학교마다 거리를 담을 배열
+						double temp[3] = { 0, };
+						int tmpCount = 100000;
+						// 학생으로부터 각 학교마다 떨어진 거리를 구함(중복된 학교들을 찾기위한 과정)
+						for (int z = 0; z < 3; z++) {
+							get_school_position(k, &sch_x, &sch_y);
+
+							temp[z] = addStudents(sch_x, sch_y, std_x, std_y);
+							//정원이 넘는 학교의 경우 학생의 위치를 잠시 이동시켜 이번 레이더에 걸리지 않게 한다
+							if (countStd[z] > limit) {
+								temp[z] = R * R + 1;
+								state[situation[i][k]] = 0;
+							}
+							else
+								if (tmpCount >= temp[z]) {
+									tmpCount = temp[z];
+								}
+						}
+						for (int y = 0; y < 3; y++) {
+							if (temp[y] == tmpCount) {
+								int stdMin = 3500;
+								for (int u = 0; u < 3; u++) {
+									if (stdMin > countStd[u])
+										stdMin = countStd[u];
+								}
+								if (countStd[y] == stdMin) {
+									set_student_school(situation[i][k], y);
+									state[situation[i][k]] = -1;
+									countStd[i]++;
+								}
+
+							}
 						}
 
-						if (countStd[0] <= countStd[2]){ 
-							set_student_school(situation[i][j], 0);
-							countStd[0]++;
-						}
-						else {
-							set_student_school(situation[i][j], 2);
-							countStd[2]++;
-						}
-						if (countStd[1] <= countStd[2]) {
-							set_student_school(situation[i][j], 1);
-							countStd[1]++;
-						}
-						else {
-							set_student_school(situation[i][j], 2);
-							countStd[2]++;
-						}
-						if (countStd[0] <= countStd[1] && countStd[0] <= countStd[2]) {
-							set_student_school(situation[i][j], 0);
-							countStd[0]++;
-						}
-						else if (countStd[1] <= countStd[0] && countStd[0] <= countStd[2]) {
-							countStd[1]++;
-						}
-						else if (countStd[2] <= countStd[0] && countStd[2] <= countStd[1]) {
-							countStd[2]++;
-						}
-					}
-					// 정원이 차지 않은 경우
-					else {
-						set_student_school(situation[i][j], i);
-						countStd[i]++;
-					}
-				}
-				
-
-				// 2.중복인 경우(거리가 같을 경우): 인원수가 적은 학교에 배정한다
-				if (state[situation[i][j]] == 2) {
-					// 중복된 거리에 거주하는 학생의 위치
-					get_student_position(i, &std_x, &std_y);
-					double temp[3] = { 0, };
-
-					// 학생으로부터 각 학교마다 떨어진 거리를 구함(중복된 학교들을 찾기위한 과정)
-					for (int k = 0; k < 3; k++) {
-						get_school_position(k, &sch_x, &sch_y);
-						
-						temp[k] = addStudents(sch_x, sch_y, std_x, std_y, R);
-					}
-					// 가장 학생수가 적은 학교에 배정
-					if (temp[0] == temp[1]) {
-						if (countStd[0] <= countStd[1])
-							countStd[0]++;
-						else countStd[1]++;
-					}
-					else if (temp[0] == temp[2]) {
-						if (countStd[0] <= countStd[2])
-							countStd[0]++;
-						else countStd[2]++;
-					}
-					else if (temp[1] == temp[2]) {
-						if (countStd[1] <= countStd[2])
-							countStd[1]++;
-						else countStd[2]++;
-					}
-					else if (temp[0] == temp[1] && temp[0] == temp[2]) {
-						if (countStd[0] <= countStd[1] && countStd[0] <= countStd[2])
-							countStd[0]++;
-						else if (countStd[1] <= countStd[0] && countStd[0] <= countStd[2])
-							countStd[1]++;
-						else if (countStd[2] <= countStd[0] && countStd[2] <= countStd[1])
-							countStd[2]++;
 					}
 				}
 			}
+			// 배정이 끝나면 더이상 범위를 늘리지않고 끝낸다.
+			if (countStd[0] + countStd[1] + countStd[2] >= 10000)
+				break;
 		}
-		// 배정이 끝나면 더이상 범위를 늘리지않고 끝낸다.
-		if (countStd[0] + countStd[1] + countStd[2] >= 10000)
-			break;
 	}
-}
-// 범위을 구하는 함수
-int addStudents(int sch_x, int sch_y, int std_x, int std_y) {
-	int rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_x) * (sch_y - std_x);
-	return rr;
 }
 
 
