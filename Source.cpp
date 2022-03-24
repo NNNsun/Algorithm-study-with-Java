@@ -1,7 +1,7 @@
-extern int srand(unsigned int);
-extern int rand(void);
-
-
+//test
+#include <stdio.h>
+#include <stdlib.h>
+//
 static int process(int command, int param1, int param2)
 {
 	static int school[3][3];
@@ -35,7 +35,33 @@ static int process(int command, int param1, int param2)
 
 		return (0);
 	}
+	//test
+	if (command == 6) {
 
+		printf("결과를 출력합니다.\n");
+		FILE* output;
+		fopen_s(&output, ".\\output.txt", "w");
+
+		printf("출력중...\n");
+
+		fprintf(output, "\tA\tB\tC\t미배정\t학교\n");
+		for (int i = 0; i < 3; i++)
+			fprintf(output, "%d\t\t\t\t\t%d\n", school[i][0], school[i][1]);
+		for (int i = 0; i < 10000; i++) {
+			fprintf(output, "%d\t", student[i][0]);
+			if (student[i][2] == -1)
+				fprintf(output, "\t\t\t");
+			else
+				for (int j = 0; j < student[i][2]; j++)
+					fprintf(output, "\t");
+			fprintf(output, "%d\n", student[i][1]);
+		}
+
+		fclose(output);
+
+		printf("이 프로젝트 폴더의 output.txt 파일로 출력됨.\n");
+	}
+	//
 	return (-1);
 }
 
@@ -85,7 +111,7 @@ void set_student_school(int student_index, int school_index)
 }
 // 범위을 구하는 함수
 int addStudents(int sch_x, int sch_y, int std_x, int std_y) {
-	int rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_x) * (sch_y - std_x);
+	int rr = (sch_x - std_x) * (sch_x - std_x) + (sch_y - std_y) * (sch_y - std_y);
 	return rr;
 }
 
@@ -101,15 +127,18 @@ void run_contest(void) {
 	int limit = 3500;
 
 	// 각 학교마다 범위 안에 있는 학생들 현황
-	int situation[3][10000];
+	static int situation[3][10000];
 	// 학생들의 배정 상태를 저장 1:발견됨 또는 중복x 2:중복
-	int state[10000] = { 0, };
+	static int state[10000] = { 0, };
+	for (int i = 0; i < 10000; i++)
+		state[i] = 0;
 
 	// 현재 각 학교에 배정된 학생수
 	int countStd[3] = { 0, };
 
 	//<추가> 신규학생 스택
-	int top[3] = { -1 , };
+	int top[3];
+	
 
 
 	// 반지름
@@ -117,6 +146,9 @@ void run_contest(void) {
 
 	// 반지름 키우기
 	while (R++ < 1414) {
+		//신규학생 -1로 초기화
+		for (int i = 0; i < 3; i++)
+			top[i] = -1;
 		// N번째학교의 위치가 결정되고, n번째 학생의 위치를 알려주는 부분
 		for (int i = 0; i < 3; i++) {
 			// 학교 위치
@@ -126,13 +158,14 @@ void run_contest(void) {
 			// n번째학생의 위치를 알려준다
 			for (int j = 0; j < 10000; j++) {
 
-				get_student_position(i, &std_x, &std_y);
+				get_student_position(j, &std_x, &std_y);
 
 				// 범위안에 있을경우
 				if (R * R >= addStudents(sch_x, sch_y, std_x, std_y)) {
 					// 배정된 학생이 아닐경우
 					if (state[j] > -1) {
-						situation[i][top[i]++] = j;
+						//스택은 먼저 증가시킨후 사용하기때문에 앞쪽에 ++을 붙여준다
+						situation[i][++top[i]] = j;
 						// 1:발견됨, 끝까지 1로 남는 경우 차질없이 배정됨
 						if (state[j] == 0) state[j] = 1;
 						// 2:중복, 이미 다른 학교로 배정되어있지만 같은 거리에 거주중이므로 분류가 필요한 상태
@@ -147,9 +180,9 @@ void run_contest(void) {
 			//학교별 top값 접근
 			for (int j = 0; j < 3; j++) {
 				//학교별 스택 접근
-				for (int k = 0; k < top[j]; k++) {
+				for (int k = 0; k <= top[j]; k++) {
 					// 1. 중복이 아닌 경우
-					if (state[situation[i][j]] == 1) {
+					if (state[situation[i][k]] == 1) {
 						// 정원이 가득찬 경우 -> 정원이 남은 다른 학교가 발견하도록 '발견전' 상태로 만들어줌
 						if (countStd[i] > limit) {
 							state[situation[i][k]] = 0;
@@ -165,47 +198,49 @@ void run_contest(void) {
 					// 2.중복인 경우, 두개 이상의 레이더에 걸린 경우, 거리가 상의할수 있음
 					if (state[situation[i][k]] == 2) {
 						// 중복된 거리에 거주하는 학생의 위치
-						get_student_position(i, &std_x, &std_y);
-						//학생부터 각 학교마다 거리를 담을 배열
-						double temp[3] = { 0, };
-						int tmpCount = 100000;
-						// 학생으로부터 각 학교마다 떨어진 거리를 구함(중복된 학교들을 찾기위한 과정)
+						get_student_position(situation[i][k], &std_x, &std_y);
+						int MAX_SCHOOL_DISTANCE = 2000 * 2000; // 기준 : 우리가 다루는 지도상의 최대거리보다 더 길게
+						// 각 학교마다 현재 학생과의 거리를 담을 배열
+						int distance[3];
+						// 학교별 거리 가져오기 (동시에 최소거리인 학교의 인덱스도 알아내기)
+						int minDistanceSchool = 0;
 						for (int z = 0; z < 3; z++) {
-							get_school_position(k, &sch_x, &sch_y);
-
-							temp[z] = addStudents(sch_x, sch_y, std_x, std_y);
-							//정원이 넘는 학교의 경우 학생의 위치를 잠시 이동시켜 이번 레이더에 걸리지 않게 한다
-							if (countStd[z] > limit) {
-								temp[z] = R * R + 1;
-								state[situation[i][k]] = 0;
+							// 학교 위치 가져오기
+							get_school_position(z, &sch_x, &sch_y);
+							// 현재 학교의 거리(왜곡 가능) 저장하기
+							if (countStd[z] == limit)
+								// 1. 정원이 다 찬 학교를 거리 왜곡
+								distance[z] = MAX_SCHOOL_DISTANCE;
+							else {
+								int tempDistance = addStudents(sch_x, sch_y, std_x, std_y);
+								if (R * R < tempDistance)
+									// 2. 아직 이 학생을 발견하지 못한 학교를 거리 왜곡
+									distance[z] = MAX_SCHOOL_DISTANCE;
+								else
+									// 3. 이 학생을 발견한 학교인데 정원도 남았으면 거리 제대로 반영
+									distance[z] = addStudents(sch_x, sch_y, std_x, std_y);
 							}
-							else
-								if (tmpCount >= temp[z]) {
-									tmpCount = temp[z];
-								}
+							// 방금 살펴본 학교가 최소거리였나?? 확인하기
+							if (distance[minDistanceSchool] > distance[z])
+								minDistanceSchool = z;
 						}
-						for (int y = 0; y < 3; y++) {
-							if (temp[y] == tmpCount) {
-								int stdMin = 3500;
-								for (int u = 0; u < 3; u++) {
-									if (stdMin > countStd[u])
-										stdMin = countStd[u];
-								}
-								if (countStd[y] == stdMin) {
-									set_student_school(situation[i][k], y);
-									state[situation[i][k]] = -1;
-									countStd[i]++;
-								}
-
-							}
+						// 배정할 수 있는 학교가 있으면
+						if (distance[minDistanceSchool] <= R * R) {
+							// 배정하고
+							set_student_school(situation[i][k], minDistanceSchool);
+							state[situation[i][k]] = -1;
+							countStd[minDistanceSchool]++;
 						}
-
+						// 배정할 수 없으면
+						else
+							// 미발견 상태로 되돌리기
+							state[situation[i][k]] = 0;
 					}
 				}
+				// 배정이 끝나면 더이상 범위를 늘리지않고 끝낸다.
+				if (countStd[0] + countStd[1] + countStd[2] >= 10000)
+					break;
 			}
-			// 배정이 끝나면 더이상 범위를 늘리지않고 끝낸다.
-			if (countStd[0] + countStd[1] + countStd[2] >= 10000)
-				break;
 		}
 	}
 }
@@ -219,12 +254,13 @@ void main(void)
 	int counter;
 
 	srand(3);
-
 	for (counter = 0; counter < 10; counter++)
 	{
 		process(0, 0, 0);
 		run_contest();
 	}
-
+	//test
+	process(6, 3, 5);
+	//
 	return;
 }
