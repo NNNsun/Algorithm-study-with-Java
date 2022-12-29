@@ -1,1 +1,6 @@
-# Algorithm-study-with-Java
+## Algorithm study in the past
+
+* 알고리즘을 처음 접했을 당시 했던 공부입니다
+  * 학교에서 또는 개인적으로 공부했던 기록입니다
+* 문법, 자료구조도 포함되어있습니다
+* Java와 C++을 사용했습니다
